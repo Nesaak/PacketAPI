@@ -13,7 +13,7 @@ public class PacketAPI {
 
     private static final String VER = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
 
-    private static boolean enabled;
+    private static boolean enabled = false;
 
     private static void enable() {
         if (enabled) return;
@@ -21,28 +21,28 @@ public class PacketAPI {
     }
 
     public static void listenOutgoing(Player player, Consumer<Object> packet) {
-        enable();
-        getPlayerChannel(player).pipeline().addBefore("packet_handler", "listener", new ChannelDuplexHandler() {
+        getPlayerChannel(player).pipeline().addBefore("packet_handler", "outgoing", new ChannelDuplexHandler() {
             @Override
             public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-                Bukkit.broadcastMessage(msg.getClass().getSimpleName());
-                // msg is our packet
+                packet.accept(msg);
                 super.write(ctx, msg, promise);
             }
+        });
+    }
 
+    public static void listenIncoming(Player player, Consumer<Object> packet) {
+        getPlayerChannel(player).pipeline().addBefore("packet_handler", "incoming", new ChannelDuplexHandler() {
             @Override
             public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-                Bukkit.broadcastMessage(msg.getClass().getSimpleName());
-                // msg is our packet
+                packet.accept(msg);
                 super.channelRead(ctx, msg);
             }
         });
-
     }
 
     public static Channel getPlayerChannel(Player player) {
         try {
-            Object entityPlayer = getCraftBukkit("CraftPlayer").getMethod("getHandle").invoke(player);
+            Object entityPlayer = getCraftBukkit("entity.CraftPlayer").getMethod("getHandle").invoke(player);
             Object playerConnection = getNMS("EntityPlayer").getField("playerConnection").get(entityPlayer);
             Object networkManager = getNMS("PlayerConnection").getField("networkManager").get(playerConnection);
             return (Channel) getNMS("NetworkManager").getField("channel").get(networkManager);
@@ -50,11 +50,6 @@ public class PacketAPI {
             e.printStackTrace();
         }
         return null;
-    }
-
-    public static void listenIncoming(Player player, Consumer<Object> packet) {
-        enable();
-
     }
 
     public static Class<?> getNMS(String name) {
