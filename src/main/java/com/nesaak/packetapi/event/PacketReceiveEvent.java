@@ -1,13 +1,14 @@
-package com.nesaak.packetapi;
+package com.nesaak.packetapi.event;
 
+import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 
-public class PacketSendEvent extends PacketEvent {
+public class PacketReceiveEvent extends PacketEvent {
 
     private static HandlerList handlerList = new HandlerList();
 
-    public PacketSendEvent(Object packet) {
-        super(packet);
+    public PacketReceiveEvent(Object packet, Player player) {
+        super(packet, player);
     }
 
     @Override

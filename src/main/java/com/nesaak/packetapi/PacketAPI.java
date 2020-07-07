@@ -1,54 +1,34 @@
 package com.nesaak.packetapi;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.HandlerList;
+import org.bukkit.event.player.PlayerEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.server.ServerLoadEvent;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.function.Consumer;
+import java.lang.ref.WeakReference;
 
 public class PacketAPI {
 
-    public static void listenOutgoing(Player player, Consumer<Object> packet) {
-        getPlayerChannel(player).pipeline().addBefore("packet_handler", "outgoing", new ChannelDuplexHandler() {
-            @Override
-            public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-                packet.accept(msg);
-                super.write(ctx, msg, promise);
-            }
-        });
-    }
+    private static WeakReference<Plugin> plugin;
+    private static ChannelInjector injector = new ChannelInjector();
 
-    public static void listenIncoming(Player player, Consumer<Object> packet) {
-        getPlayerChannel(player).pipeline().addBefore("packet_handler", "incoming", new ChannelDuplexHandler() {
-            @Override
-            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-                packet.accept(msg);
-                super.channelRead(ctx, msg);
-            }
-        });
-    }
+    private static RegisteredListener playerJoin = new RegisteredListener(null, (listener, event) -> injector.inject(((PlayerEvent) event).getPlayer()), EventPriority.HIGHEST, getPlugin(), false);
+    private static RegisteredListener playerQuit = new RegisteredListener(null, (listener, event) -> injector.remove(((PlayerEvent) event).getPlayer()), EventPriority.HIGHEST, getPlugin(), false);
+    private static RegisteredListener serverLoad = new RegisteredListener(null, (listener, event) -> injector.reloaded(), EventPriority.HIGHEST, getPlugin(), false);
 
     public static void enable() {
+        PlayerJoinEvent.getHandlerList().register(playerJoin);
+        PlayerQuitEvent.getHandlerList().register(playerQuit);
+        ServerLoadEvent.getHandlerList().register(serverLoad);
     }
 
-
-    public static Channel getPlayerChannel(Player player) {
-        try {
-            Object entityPlayer = Reflection.CraftPlayer.getMethod("getHandle").invoke(player);
-            Object playerConnection = Reflection.EntityPlayer.getField("playerConnection").get(entityPlayer);
-            Object networkManager = Reflection.PlayerConnection.getField("networkManager").get(playerConnection);
-            return (Channel) Reflection.NetworkManager.getField("channel").get(networkManager);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+    public static Plugin getPlugin() {
+        if (plugin == null) plugin = new WeakReference(JavaPlugin.getProvidingPlugin(PacketAPI.class));
+        return plugin.get();
     }
+
 }
