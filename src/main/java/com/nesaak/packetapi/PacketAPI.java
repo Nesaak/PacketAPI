@@ -6,12 +6,15 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
+import org.bukkit.plugin.RegisteredListener;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.function.Consumer;
 
 public class PacketAPI {
-
-    private static final String VER = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
 
     public static void listenOutgoing(Player player, Consumer<Object> packet) {
         getPlayerChannel(player).pipeline().addBefore("packet_handler", "outgoing", new ChannelDuplexHandler() {
@@ -33,31 +36,17 @@ public class PacketAPI {
         });
     }
 
+    public static void enable() {
+    }
+
+
     public static Channel getPlayerChannel(Player player) {
         try {
-            Object entityPlayer = getCraftBukkit("entity.CraftPlayer").getMethod("getHandle").invoke(player);
-            Object playerConnection = getNMS("EntityPlayer").getField("playerConnection").get(entityPlayer);
-            Object networkManager = getNMS("PlayerConnection").getField("networkManager").get(playerConnection);
-            return (Channel) getNMS("NetworkManager").getField("channel").get(networkManager);
+            Object entityPlayer = Reflection.CraftPlayer.getMethod("getHandle").invoke(player);
+            Object playerConnection = Reflection.EntityPlayer.getField("playerConnection").get(entityPlayer);
+            Object networkManager = Reflection.PlayerConnection.getField("networkManager").get(playerConnection);
+            return (Channel) Reflection.NetworkManager.getField("channel").get(networkManager);
         } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public static Class<?> getNMS(String name) {
-        try {
-            return Class.forName("net.minecraft.server." + VER + "." + name);
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public static Class<?> getCraftBukkit(String name) {
-        try {
-            return Class.forName("org.bukkit.craftbukkit." + VER + "." + name);
-        } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
         return null;
