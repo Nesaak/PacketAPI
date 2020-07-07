@@ -13,13 +13,6 @@ public class PacketAPI {
 
     private static final String VER = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
 
-    private static boolean enabled = false;
-
-    private static void enable() {
-        if (enabled) return;
-        enabled = true;
-    }
-
     public static void listenOutgoing(Player player, Consumer<Object> packet) {
         getPlayerChannel(player).pipeline().addBefore("packet_handler", "outgoing", new ChannelDuplexHandler() {
             @Override
