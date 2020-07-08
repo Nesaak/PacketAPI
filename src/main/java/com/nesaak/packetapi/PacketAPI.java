@@ -1,5 +1,6 @@
 package com.nesaak.packetapi;
 
+import org.bukkit.Bukkit;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -21,6 +22,7 @@ public class PacketAPI {
     private static RegisteredListener serverLoad = new RegisteredListener(null, (listener, event) -> injector.reloaded(), EventPriority.HIGHEST, getPlugin(), false);
 
     public static void enable() {
+        Bukkit.getLogger().info("Enabling PacketAPI...");
         PlayerJoinEvent.getHandlerList().register(playerJoin);
         PlayerQuitEvent.getHandlerList().register(playerQuit);
         ServerLoadEvent.getHandlerList().register(serverLoad);
